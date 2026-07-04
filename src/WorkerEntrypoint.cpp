@@ -3,8 +3,6 @@
 #include <botcraft/Network/NetworkManager.hpp>
 #include <botcraft/Utilities/Logger.hpp>
 
-#include "../build/_deps/botcraft-src/botcraft/private_include/botcraft/Network/Authentifier.hpp"
-
 std::string getEnvVar(std::string const &key);
 
 std::vector<std::string> splitByDelimiter(const std::string &full, char delimiter = ',');
