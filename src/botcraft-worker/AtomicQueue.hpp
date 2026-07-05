@@ -3,10 +3,16 @@
 #include <queue>
 #include <malloc.h>
 
+#ifndef BOTCRAFT_WORKER_MAX_QUEUE
+#define BOTCRAFT_WORKER_MAX_QUEUE 0
+#endif
+
 template<typename T>
 class AtomicQueue {
+    static constexpr int MAX_QUEUE_SIZE = BOTCRAFT_WORKER_MAX_QUEUE;
 public:
     void push(const T &value) {
+        if constexpr (MAX_QUEUE_SIZE > 0) if (size() >= MAX_QUEUE_SIZE) pop();
         std::lock_guard lock(mutex);
         T *v = new T();
         *v = value;
@@ -35,11 +41,17 @@ public:
         return queue.size();
     }
 
+    ~AtomicQueue() {
+        std::lock_guard lock(mutex);
+        while (!queue.empty()) internal_pop();
+    }
+
 private:
     std::queue<T*> queue;
     mutable std::mutex mutex;
 
     void internal_pop() {
+        if (queue.empty()) return;
         delete queue.front();
         queue.pop();
         if (queue.empty()) {
