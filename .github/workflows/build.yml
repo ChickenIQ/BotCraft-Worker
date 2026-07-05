@@ -47,6 +47,6 @@ jobs:
         uses: docker/build-push-action@v7
         with:
           push: true
-          file: Containerfile
+          file: Dockerfile
           tags: ${{ env.IMAGE_FULL }}
           platforms: linux/amd64,linux/arm64
