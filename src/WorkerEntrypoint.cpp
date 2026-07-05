@@ -1,5 +1,7 @@
 #include <string>
 #include <thread>
+#include <csignal>
+#include <atomic>
 #include <botcraft/Network/NetworkManager.hpp>
 #include <botcraft/Utilities/Logger.hpp>
 
@@ -7,12 +9,18 @@ std::string getEnvVar(std::string const &key);
 
 std::vector<std::string> splitByDelimiter(const std::string &full, char delimiter = ',');
 
+void signalHandler(int signum);
+
 #include "botcraft-worker/SocketPacket.hpp"
 #include "botcraft-worker/AtomicQueue.hpp"
 #include "botcraft-worker/ChatClient.hpp"
 #include "botcraft-worker/SocketConnection.hpp"
 
+std::atomic_bool worker_running(true);
+
 int main() {
+    std::signal(SIGINT, signalHandler);
+
     Botcraft::Logger::GetInstance().SetLogLevel(Botcraft::LogLevel::Info);
     Botcraft::Logger::GetInstance().SetFilename("");
     Botcraft::Logger::GetInstance().RegisterThread("main");
@@ -34,8 +42,6 @@ int main() {
     const std::vector<std::string> offlineUsernames = splitByDelimiter(offlineLogins);
 
     try {
-        std::atomic_bool running(true);
-
         try {
             const int logLevel = std::stoi(logLevelString);
             Botcraft::Logger::GetInstance().SetLogLevel(static_cast<Botcraft::LogLevel>(logLevel));
@@ -64,7 +70,7 @@ int main() {
         }
         connection->QueuePacket(SocketPacket_MakeInfoPacket(usernames));
 
-        while (running) {
+        while (worker_running) {
             std::this_thread::sleep_for(std::chrono::milliseconds(5));
             connection->Connect();
             for (ChatClient *client: clients) {
@@ -81,7 +87,7 @@ int main() {
                 if (!connection->ReceivePacket(inbound)) break;
                 if (inbound.type >= PacketConsumeHandlers.size()) continue;
                 if (inbound.type == SOCKET_PACKET_TYPE_STOP) {
-                    running = false;
+                    worker_running = false;
                     continue;
                 }
                 const PacketHandler callableFunction = PacketConsumeHandlers[inbound.type];
@@ -123,4 +129,8 @@ std::vector<std::string> splitByDelimiter(const std::string &full, const char de
     std::istringstream tokenStream(full);
     while (std::getline(tokenStream, token, delimiter)) tokens.push_back(token);
     return tokens;
+}
+
+void signalHandler(int signum) {
+    worker_running = false;
 }
