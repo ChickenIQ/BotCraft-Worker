@@ -14,7 +14,9 @@ ChatClient::~ChatClient() {
 }
 
 void ChatClient::Connect() {
-    if (bool expected = false; !alive.compare_exchange_strong(expected, true)) return;
+    if (!this->GetShouldBeClosed()) {
+        if (bool expected = false; !alive.compare_exchange_strong(expected, true)) return;
+    }
     if (isOnline)
         this->ConnectMicrosoft(this->address, this->username);
     else
