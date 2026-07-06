@@ -19,6 +19,20 @@ SocketPacket SocketPacket_MakeChatPacket(const int8_t botId, const std::string &
     return packet;
 }
 
+SocketPacket SocketPacket_MakePlayerChatPacket(const int8_t botId, std::array<unsigned char, SOCKET_PACKET_PAYLOAD_USIZE> uuid, const std::string &msg) {
+    // ReSharper disable once CppLocalVariableMayBeConst
+    SocketPacket packet = {
+        .type = SOCKET_PACKET_TYPE_PCHAT,
+        .id = botId,
+        .length = msg.length() + SOCKET_PACKET_PAYLOAD_USIZE > sizeof(packet.payload) ? 
+            sizeof(packet.payload) : msg.length() + SOCKET_PACKET_PAYLOAD_USIZE,
+        .payload = ""
+    };
+    memcpy((char *) packet.payload, uuid.data(), SOCKET_PACKET_PAYLOAD_USIZE);
+    strncpy((char *) packet.payload + SOCKET_PACKET_PAYLOAD_USIZE, msg.c_str(), sizeof(packet.payload) - SOCKET_PACKET_PAYLOAD_USIZE);
+    return packet;
+}
+
 SocketPacket SocketPacket_MakeInfoPacket(const std::vector<std::string> &bots) {
     // ReSharper disable once CppLocalVariableMayBeConst
     SocketPacket packet = {

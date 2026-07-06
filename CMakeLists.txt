@@ -15,6 +15,14 @@ if (NOT BOTCRAFT_CACHED_CREDENTIALS_PATH)
     set(BOTCRAFT_CACHED_CREDENTIALS_PATH "cached_credentials.json" CACHE INTERNAL "")
 endif ()
 
+if (NOT BOTCRAFT_WORKER_MAX_QUEUE)
+    set(BOTCRAFT_WORKER_MAX_QUEUE 0 CACHE INTERNAL "")
+endif ()
+
+if (NOT BOTCRAFT_WORKER_FLATTEN_PLAYERCHAT)
+    set(BOTCRAFT_WORKER_FLATTEN_PLAYERCHAT true CACHE INTERNAL "")
+endif ()
+
 include(FetchContent)
 FetchContent_Declare(
         Botcraft
@@ -34,6 +42,8 @@ add_executable(${PROJECT_NAME}
         src/SocketPacket.cpp
         src/WorkerEntrypoint.cpp
 )
+
+target_compile_definitions(${PROJECT_NAME} PRIVATE BOTCRAFT_WORKER_MAX_QUEUE=${BOTCRAFT_WORKER_MAX_QUEUE})
 
 target_link_libraries(${PROJECT_NAME} PRIVATE botcraft)
 

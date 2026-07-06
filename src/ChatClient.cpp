@@ -1,6 +1,10 @@
 #include <botcraft/Utilities/Logger.hpp>
 #include "botcraft-worker/ChatClient.hpp"
 
+#ifndef BOTCRAFT_WORKER_FLATTEN_PLAYERCHAT
+#define BOTCRAFT_WORKER_FLATTEN_PLAYERCHAT true
+#endif
+
 ChatClient::ChatClient(const int8_t id, std::string addr, std::string user, bool const isOnline) : alive(false),
     id(id),
     address(std::move(addr)),
@@ -14,7 +18,9 @@ ChatClient::~ChatClient() {
 }
 
 void ChatClient::Connect() {
-    if (bool expected = false; !alive.compare_exchange_strong(expected, true)) return;
+    if (!this->GetShouldBeClosed()) {
+        if (bool expected = false; !alive.compare_exchange_strong(expected, true)) return;
+    }
     if (isOnline)
         this->ConnectMicrosoft(this->address, this->username);
     else
@@ -36,11 +42,27 @@ void ChatClient::Handle(ProtocolCraft::ClientboundDisconnectPacket &msg) {
 }
 
 void ChatClient::Handle(ProtocolCraft::ClientboundSystemChatPacket &msg) {
-    const std::istringstream ss{msg.GetContent().GetText()};
-    tx.push(SocketPacket_MakeChatPacket(id, ss.str()));
+    auto str = msg.GetContent().GetText();
+    if (str.empty()) return;
+    tx.push(SocketPacket_MakeChatPacket(id, str));
 }
 
 void ChatClient::Handle(ProtocolCraft::ClientboundPlayerChatPacket &msg) {
-    const std::istringstream ss{msg.GetBody().GetContent()};
-    tx.push(SocketPacket_MakeChatPacket(id, ss.str()));
+    if constexpr (BOTCRAFT_WORKER_FLATTEN_PLAYERCHAT) {
+        std::string uc = msg.GetBody().GetContent();
+        if (uc.empty()) return;
+        const std::string userName = this->GetPlayerName(msg.GetSender());
+        uc = "<" + userName + "> " + uc;
+        tx.push(SocketPacket_MakeChatPacket(id, uc));
+    } else {
+        const std::string uc = msg.GetBody().GetContent();
+        if (uc.empty()) return;
+        tx.push(SocketPacket_MakePlayerChatPacket(id, msg.GetSender(), uc));
+    }
+}
+
+void ChatClient::Handle(ProtocolCraft::ClientboundDisguisedChatPacket &msg) {
+    auto str = msg.GetMessage().GetText();
+    if (str.empty()) return;
+    tx.push(SocketPacket_MakeChatPacket(id, str));
 }

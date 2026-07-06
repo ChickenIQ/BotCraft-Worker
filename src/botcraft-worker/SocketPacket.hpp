@@ -7,6 +7,7 @@
 #define SOCKET_PACKET_TYPE_INFO         1
 #define SOCKET_PACKET_TYPE_STOP         2
 #define SOCKET_PACKET_TYPE_DISCONNECT   3
+#define SOCKET_PACKET_TYPE_PCHAT        4
 
 #include <functional>
 #include <vector>
@@ -24,8 +25,9 @@ void PacketConsume_Chat(void *, void *);
 void PacketConsume_Disconnect(void *, void *);
 
 using PacketHandler = std::function<void(void *, void *)>;
-static std::array<PacketHandler, 3> PacketConsumeHandlers = {
+static std::array<PacketHandler, 4> PacketConsumeHandlers = {
     PacketConsume_Chat,
+    nullptr,
     nullptr,
     PacketConsume_Disconnect,
 };
@@ -33,3 +35,5 @@ static std::array<PacketHandler, 3> PacketConsumeHandlers = {
 SocketPacket SocketPacket_MakeChatPacket(int8_t botId, const std::string &msg);
 
 SocketPacket SocketPacket_MakeInfoPacket(const std::vector<std::string> &bots);
+
+SocketPacket SocketPacket_MakePlayerChatPacket(const int8_t botId, std::array<unsigned char, SOCKET_PACKET_PAYLOAD_USIZE> uuid, const std::string &msg);

@@ -6,7 +6,6 @@ on:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref || github.run_id }}
-  cancel-in-progress: true
 
 env:
   IMAGE_REGISTRY: ghcr.io/${{ github.repository_owner }}
@@ -15,17 +14,27 @@ env:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-latest
+            platform: linux/amd64
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+            platform: linux/arm64
+    runs-on: ${{ matrix.runner }}
     permissions:
       contents: read
       packages: write
     steps:
       - name: Prepare environment
+        id: prep
         run: |
           echo "IMAGE_TAG=${IMAGE_TAG,,}" >> ${GITHUB_ENV}
           echo "IMAGE_NAME=${IMAGE_NAME,,}" >> ${GITHUB_ENV}
           echo "IMAGE_REGISTRY=${IMAGE_REGISTRY,,}" >> ${GITHUB_ENV}
-          echo "IMAGE_FULL=${IMAGE_REGISTRY,,}/${IMAGE_NAME,,}:${IMAGE_TAG,,}" >> ${GITHUB_ENV}
+          echo "image_full=${IMAGE_REGISTRY,,}/${IMAGE_NAME,,}:${IMAGE_TAG,,}-${{ matrix.arch }}" >> $GITHUB_OUTPUT
         
       - name: Checkout
         uses: actions/checkout@v7
@@ -37,9 +46,6 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v4
-
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
 
@@ -47,6 +53,34 @@ jobs:
         uses: docker/build-push-action@v7
         with:
           push: true
-          file: Containerfile
-          tags: ${{ env.IMAGE_FULL }}
-          platforms: linux/amd64,linux/arm64
+          file: Dockerfile
+          tags: ${{ steps.prep.outputs.image_full }}
+          platforms: ${{ matrix.platform }}
+
+  merge:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+    steps:
+      - name: Prepare environment
+        run: |
+          echo "IMAGE_TAG=${IMAGE_TAG,,}" >> ${GITHUB_ENV}
+          echo "IMAGE_NAME=${IMAGE_NAME,,}" >> ${GITHUB_ENV}
+          echo "IMAGE_REGISTRY=${IMAGE_REGISTRY,,}" >> ${GITHUB_ENV}
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Create and push multi-arch manifest
+        run: |
+          docker buildx imagetools create -t ${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }} \
+            ${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}-amd64 \
+            ${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}-arm64

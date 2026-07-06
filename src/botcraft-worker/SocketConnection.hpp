@@ -26,6 +26,8 @@ public:
 
     void ProcessQueue();
 
+    void InjectIncomingPacket(const SocketPacket &packet);
+
 protected:
     bool ProcessSinglePacket(const SocketPacket &packet);
 

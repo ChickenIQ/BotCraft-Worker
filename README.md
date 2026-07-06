@@ -1,0 +1,1 @@
+Unix socket client (and Docker image) for BotCraft so you can integrate it into your Discord bots to bridge Minecraft <> Discord chat!

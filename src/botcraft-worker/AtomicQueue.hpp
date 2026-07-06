@@ -3,12 +3,21 @@
 #include <queue>
 #include <malloc.h>
 
+#ifndef BOTCRAFT_WORKER_MAX_QUEUE
+#define BOTCRAFT_WORKER_MAX_QUEUE 0
+#endif
+
 template<typename T>
 class AtomicQueue {
+    static constexpr int MAX_QUEUE_SIZE = BOTCRAFT_WORKER_MAX_QUEUE;
+    static constexpr int MAX_UNCOMMIT = 100;
 public:
     void push(const T &value) {
+        if constexpr (MAX_QUEUE_SIZE > 0) if (size() >= MAX_QUEUE_SIZE) pop();
         std::lock_guard lock(mutex);
-        queue.push(value);
+        T *v = new T();
+        *v = value;
+        queue.push(v);
     }
 
     void pop() {
@@ -18,14 +27,14 @@ public:
 
     T pull() {
         std::lock_guard lock(mutex);
-        T v = queue.front();
+        T v = *queue.front();
         internal_pop();
         return v;
     }
 
     T peek() const {
         std::lock_guard lock(mutex);
-        return queue.front();
+        return *queue.front();
     }
 
     int size() const {
@@ -33,15 +42,25 @@ public:
         return queue.size();
     }
 
+    ~AtomicQueue() {
+        std::lock_guard lock(mutex);
+        while (!queue.empty()) internal_pop();
+    }
+
 private:
-    std::queue<T> queue;
+    std::queue<T*> queue;
     mutable std::mutex mutex;
+    bool dirty;
 
     void internal_pop() {
+        if (queue.empty()) return;
+        if (queue.size() >= MAX_UNCOMMIT) dirty = true;
+        delete queue.front();
         queue.pop();
-        if (queue.empty()) {
-            std::queue<T>().swap(queue);
+        if (dirty && queue.empty()) {
+            std::queue<T*>().swap(queue);
             malloc_trim(0);
+            dirty = false;
         }
     }
 };
