@@ -52,12 +52,15 @@ int main() {
         auto *connection = new SocketConnection(socketPath);
         connection->InjectIncomingPacket(SocketPacket_MakeInfoPacket({}));
 
-        for (int i = 0; i < microsoftUsernames.size(); i++) {
-            clients.push_back(new ChatClient(static_cast<int8_t>(i + 1), serverAddress, microsoftUsernames[i], true));
-        }
+        {
+            int botIdCounter = 1;
+            for (auto name: microsoftUsernames) {
+                clients.push_back(new ChatClient(static_cast<int8_t>(botIdCounter++), serverAddress, name, true));
+            }
 
-        for (int i = 0; i < offlineUsernames.size(); i++) {
-            clients.push_back(new ChatClient(static_cast<int8_t>(i + 1), serverAddress, offlineUsernames[i], false));
+            for (auto name: offlineUsernames) {
+                clients.push_back(new ChatClient(static_cast<int8_t>(botIdCounter++), serverAddress, name, false));
+            }
         }
 
         while (worker_running) {
@@ -102,7 +105,7 @@ int main() {
                     const bool shouldCall = inbound.id == 0 || client->GetId() == inbound.id || (inbound.id < 0 && abs(inbound.id) != client->GetId());
                     if (shouldCall) {
                         callableFunction(client, &inbound);
-                        if (inbound.id != 0) break;
+                        if (inbound.id > 0) break;
                     }
                 }
             }
