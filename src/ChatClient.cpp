@@ -38,11 +38,19 @@ void ChatClient::Handle(ProtocolCraft::ClientboundDisconnectPacket &msg) {
 }
 
 void ChatClient::Handle(ProtocolCraft::ClientboundSystemChatPacket &msg) {
-    const std::istringstream ss{msg.GetContent().GetText()};
-    tx.push(SocketPacket_MakeChatPacket(id, ss.str()));
+    auto str = msg.GetContent().GetText();
+    if (str.empty()) return;
+    tx.push(SocketPacket_MakeChatPacket(id, str));
 }
 
 void ChatClient::Handle(ProtocolCraft::ClientboundPlayerChatPacket &msg) {
-    const std::istringstream ss{msg.GetBody().GetContent()};
-    tx.push(SocketPacket_MakeChatPacket(id, ss.str()));
+    auto uc = msg.GetUnsignedContent();
+    if (!uc || uc->GetText().empty()) return;
+    tx.push(SocketPacket_MakeChatPacket(id, uc->GetText()));
+}
+
+void ChatClient::Handle(ProtocolCraft::ClientboundDisguisedChatPacket &msg) {
+    auto str = msg.GetMessage().GetText();
+    if (str.empty()) return;
+    tx.push(SocketPacket_MakeChatPacket(id, str));
 }

@@ -30,4 +30,6 @@ protected:
     void Handle(ProtocolCraft::ClientboundSystemChatPacket &msg) override;
 
     void Handle(ProtocolCraft::ClientboundPlayerChatPacket &msg) override;
+
+    void Handle(ProtocolCraft::ClientboundDisguisedChatPacket &msg) override;
 };

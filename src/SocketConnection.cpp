@@ -93,3 +93,7 @@ bool SocketConnection::ProcessSinglePacket(const SocketPacket &packet) {
     }
     return true;
 }
+
+void SocketConnection::InjectIncomingPacket(const SocketPacket &packet) {
+    rx.push(packet);
+}

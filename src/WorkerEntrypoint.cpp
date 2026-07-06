@@ -50,6 +50,7 @@ int main() {
 
         std::vector<ChatClient *> clients;
         auto *connection = new SocketConnection(socketPath);
+        connection->InjectIncomingPacket(SocketPacket_MakeInfoPacket({}));
 
         for (int i = 0; i < microsoftUsernames.size(); i++) {
             clients.push_back(new ChatClient(static_cast<int8_t>(i + 1), serverAddress, microsoftUsernames[i], true));
@@ -59,20 +60,9 @@ int main() {
             clients.push_back(new ChatClient(static_cast<int8_t>(i + 1), serverAddress, offlineUsernames[i], false));
         }
 
-        for (auto client: clients) client->Connect();
-
-        std::vector<std::string> usernames;
-        usernames.reserve(clients.size());
-        for (ChatClient *client: clients) {
-            std::shared_ptr<Botcraft::NetworkManager> nm = client->GetNetworkManager();
-            std::string username = nm.get()->GetMyName();
-            usernames.push_back(username);
-        }
-        connection->QueuePacket(SocketPacket_MakeInfoPacket(usernames));
-
         while (worker_running) {
             std::this_thread::sleep_for(std::chrono::milliseconds(5));
-            connection->Connect();
+
             for (ChatClient *client: clients) {
                 client->Connect();
                 while (true) {
@@ -81,20 +71,35 @@ int main() {
                     } else break;
                 }
             }
+
+            connection->Connect();
             connection->ProcessQueue();
             while (true) {
                 SocketPacket inbound;
                 if (!connection->ReceivePacket(inbound)) break;
                 if (inbound.type >= PacketConsumeHandlers.size()) continue;
+
                 if (inbound.type == SOCKET_PACKET_TYPE_STOP) {
                     worker_running = false;
                     continue;
                 }
+                if (inbound.type == SOCKET_PACKET_TYPE_INFO) {
+                    std::vector<std::string> usernames;
+                    usernames.reserve(clients.size());
+                    for (ChatClient *client: clients) {
+                        std::shared_ptr<Botcraft::NetworkManager> nm = client->GetNetworkManager();
+                        std::string username = nm.get()->GetMyName();
+                        usernames.push_back(username);
+                    }
+                    connection->QueuePacket(SocketPacket_MakeInfoPacket(usernames));
+                    continue;
+                }
+
                 const PacketHandler callableFunction = PacketConsumeHandlers[inbound.type];
                 if (callableFunction == nullptr) continue;
+
                 for (ChatClient *client: clients) {
-                    const bool shouldCall = inbound.id == 0 || client->GetId() == inbound.id || (
-                                                inbound.id < 0 && abs(inbound.id) != client->GetId());
+                    const bool shouldCall = inbound.id == 0 || client->GetId() == inbound.id || (inbound.id < 0 && abs(inbound.id) != client->GetId());
                     if (shouldCall) {
                         callableFunction(client, &inbound);
                         if (inbound.id != 0) break;

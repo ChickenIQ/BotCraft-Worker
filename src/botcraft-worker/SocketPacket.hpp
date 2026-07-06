@@ -24,8 +24,9 @@ void PacketConsume_Chat(void *, void *);
 void PacketConsume_Disconnect(void *, void *);
 
 using PacketHandler = std::function<void(void *, void *)>;
-static std::array<PacketHandler, 3> PacketConsumeHandlers = {
+static std::array<PacketHandler, 4> PacketConsumeHandlers = {
     PacketConsume_Chat,
+    nullptr,
     nullptr,
     PacketConsume_Disconnect,
 };
