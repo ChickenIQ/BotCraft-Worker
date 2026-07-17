@@ -36,4 +36,6 @@ SocketPacket SocketPacket_MakeChatPacket(int8_t botId, const std::string &msg);
 
 SocketPacket SocketPacket_MakeInfoPacket(const std::vector<std::string> &bots);
 
+SocketPacket SocketPacket_MakeDisconnectPacket(const int8_t botId, const std::string &reason);
+
 SocketPacket SocketPacket_MakePlayerChatPacket(const int8_t botId, std::array<unsigned char, SOCKET_PACKET_PAYLOAD_USIZE> uuid, const std::string &msg);

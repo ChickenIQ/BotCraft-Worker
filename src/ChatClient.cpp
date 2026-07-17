@@ -39,6 +39,7 @@ int8_t ChatClient::GetId() const {
 
 void ChatClient::Handle(ProtocolCraft::ClientboundDisconnectPacket &msg) {
     alive = false;
+    tx.push(SocketPacket_MakeDisconnectPacket(id, msg.GetReason().GetText()));
 }
 
 void ChatClient::Handle(ProtocolCraft::ClientboundSystemChatPacket &msg) {
