@@ -45,6 +45,7 @@ void ChatClient::Handle(ProtocolCraft::ClientboundSystemChatPacket &msg) {
     auto str = msg.GetContent().GetText();
     if (str.empty()) return;
     tx.push(SocketPacket_MakeChatPacket(id, str));
+    LOG_DEBUG(id << ": " << str);
 }
 
 void ChatClient::Handle(ProtocolCraft::ClientboundPlayerChatPacket &msg) {
@@ -54,10 +55,12 @@ void ChatClient::Handle(ProtocolCraft::ClientboundPlayerChatPacket &msg) {
         const std::string userName = this->GetPlayerName(msg.GetSender());
         uc = "<" + userName + "> " + uc;
         tx.push(SocketPacket_MakeChatPacket(id, uc));
+        LOG_DEBUG(id << ": " << uc);
     } else {
         const std::string uc = msg.GetBody().GetContent();
         if (uc.empty()) return;
         tx.push(SocketPacket_MakePlayerChatPacket(id, msg.GetSender(), uc));
+        LOG_DEBUG(id << ": " << uc);
     }
 }
 
@@ -65,4 +68,5 @@ void ChatClient::Handle(ProtocolCraft::ClientboundDisguisedChatPacket &msg) {
     auto str = msg.GetMessage().GetText();
     if (str.empty()) return;
     tx.push(SocketPacket_MakeChatPacket(id, str));
+    LOG_DEBUG(id << ": " << str);
 }
