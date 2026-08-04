@@ -31,5 +31,5 @@ public:
 protected:
     bool ProcessSinglePacket(const SocketPacket &packet);
 
-    bool ProcessIncomingPackets();
+    bool ProcessIncomingPacket();
 };

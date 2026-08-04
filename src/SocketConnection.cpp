@@ -64,27 +64,29 @@ void SocketConnection::ProcessQueue() {
         tx.pop();
     }
 
-    ProcessIncomingPackets();
+    while (alive && ProcessIncomingPacket());
 }
 
-bool SocketConnection::ProcessIncomingPackets() {
-    int avail = 0;
-    if (ioctl(fd, FIONREAD, &avail) == -1) {
+bool SocketConnection::ProcessIncomingPacket() {
+    SocketPacket packet;
+    const ssize_t peek_len = recv(fd, &packet, sizeof(SocketPacket), MSG_PEEK | MSG_DONTWAIT);
+    
+    if (peek_len == 0 || (peek_len < 0 && errno != EAGAIN && errno != EWOULDBLOCK)) {
+        LOG_ERROR("Failed to prepare socket read, reconnecting");
         Disconnect();
         return false;
     }
 
-    avail -= avail % static_cast<int>(sizeof(SocketPacket));
-    for (int i = 0; i < avail / sizeof(SocketPacket); i++) {
-        SocketPacket packet;
-        if (read(fd, &packet, sizeof(SocketPacket)) != sizeof(SocketPacket)) {
-            LOG_ERROR("Failed to read whole packet from socket, reconnecting");
-            Disconnect();
-            return false;
-        }
-        rx.push(packet);
+    if (peek_len < static_cast<ssize_t>(sizeof(SocketPacket))) {
+        return false;
     }
 
+    if (recv(fd, &packet, sizeof(SocketPacket), MSG_DONTWAIT) != sizeof(SocketPacket)) {
+        LOG_ERROR("Failed to read whole packet from socket, reconnecting");
+        Disconnect();
+        return false;
+    }
+    rx.push(packet);
     return true;
 }
 
