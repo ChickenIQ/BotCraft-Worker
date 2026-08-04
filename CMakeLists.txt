@@ -27,7 +27,7 @@ include(FetchContent)
 FetchContent_Declare(
         Botcraft
         GIT_REPOSITORY https://github.com/RegularRabbit05/Botcraft.git
-        GIT_TAG 5c8030d528a9cee4fffaecf752d9b3d5d410f453
+        GIT_TAG 2502a514ee00aece4630f33bed35d213901e9138
 )
 
 FetchContent_MakeAvailable(Botcraft)
