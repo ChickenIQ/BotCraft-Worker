@@ -47,6 +47,9 @@ public:
         while (!queue.empty()) internal_pop();
     }
 
+    AtomicQueue() : dirty(false) {
+    }
+
 private:
     std::queue<T*> queue;
     mutable std::mutex mutex;

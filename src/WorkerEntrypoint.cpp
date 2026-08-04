@@ -20,6 +20,7 @@ std::atomic_bool worker_running(true);
 
 int main() {
     std::signal(SIGINT, signalHandler);
+    std::signal(SIGTERM, signalHandler);
 
     Botcraft::Logger::GetInstance().SetLogLevel(Botcraft::LogLevel::Info);
     Botcraft::Logger::GetInstance().SetFilename("");
@@ -50,7 +51,6 @@ int main() {
 
         std::vector<ChatClient *> clients;
         auto *connection = new SocketConnection(socketPath);
-        connection->InjectIncomingPacket(SocketPacket_MakeInfoPacket({}));
 
         {
             int botIdCounter = 1;

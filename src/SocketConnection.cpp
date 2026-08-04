@@ -34,7 +34,10 @@ void SocketConnection::Connect() {
         close(fd);
         alive = false;
         LOG_ERROR("Socket connection failed");
+        return;
     }
+
+    InjectIncomingPacket(SocketPacket_MakeInfoPacket({}));
 }
 
 void SocketConnection::Disconnect() {
